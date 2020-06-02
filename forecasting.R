@@ -8,9 +8,12 @@ library(caret)
 library(mice)
 library(missForest)
 library(Hmisc)
+library(readxl)
+library(xlsx)
 
 train <- read.csv("C:/Users/petrg/Desktop/Prohack McKinsey/prohack_dataset_avOqBYc/train.csv")
 test <- read.csv("C:/Users/petrg/Desktop/Prohack McKinsey/prohack_dataset_avOqBYc/test.csv")
+sample_submit <- read.csv("C:/Users/petrg/Desktop/Prohack McKinsey/prohack_dataset_avOqBYc/sample_submit.csv")
 df <- as.data.frame(train)
 df_test <- as.data.frame(test)
 
@@ -83,7 +86,9 @@ colSums(is.na(train)) / dim(train)[1] * 100
 
 
 ## Try to fill NA ##
-imputed_Data  <- missForest(df[-c(2)], ntree=3, verbose = TRUE)
+#imputed_Data  <- missForest(df[-c(2)], verbose = TRUE)
+
+imputed_Data$OOBerror
 
 df_imputed = imputed_Data$ximp
 df_imputed["galaxy"] = df$galaxy
@@ -97,6 +102,44 @@ data_wide_imp <- dcast(train_imp, human.year~galaxy, value.var='Vulnerable.emplo
 mvtsplot(data_wide_imp[, 2:182], xtime=data_wide_imp$human.year, levels=9, margin=TRUE)
 
 
-summary(imputed_Data)
+model.3 <- lm(y ~ ., data=df_imputed[-80])
+summary(model.3)
 
 
+#imputed_Data_test <- missForest(test[-c(2)], verbose = TRUE)
+test_data = imputed_Data_test$ximp
+test_data['galaxy'] = test$galaxy
+
+y_hat = predict(model.3, test_data)
+
+test_data['y_hat'] = y_hat
+# check what we got 
+ggplot(data = test_data, aes(x=y_hat)) + 
+  geom_histogram(bins = 50, aes(y=..density..), colour="black", fill="lightblue") +
+  geom_density(alpha=.2, fill="#FF6666") 
+
+ggplot(data = train, aes(x=y)) + 
+  geom_histogram(bins = 50, aes(y=..density..), colour="black", fill="lightgreen") +
+  geom_density(alpha=.2, fill="#FF6666")
+
+View(test_data)
+
+sample_submit <- read.csv("C:/Users/petrg/Desktop/Prohack McKinsey/prohack_dataset_avOqBYc/sample_submit.csv")
+sample_submit$pred = y_hat
+sample_submit$existence.expectancy.index= test_data$existence.expectancy.index
+write.x(sample_submit,
+          'C:\\Users\\petrg\\Desktop\\Prohack McKinsey\\prohack_dataset_avOqBYc\\submit.csv',
+          row.names = FALSE)
+
+sample_submit$lower70 = as.numeric(sample_submit$existence.expectancy.index < 0.7)
+sample_submit$max_gain = (-log(y_hat + 0.01) +3 )**2 * sample_submit$opt_pred / 1000
+
+
+# optimized file
+submit <- read_excel("C:/Users/petrg/Desktop/Prohack McKinsey/prohack_dataset_avOqBYc/submit.xlsx",
+                     range = "A1:C891")
+View(submit)
+
+write.csv(submit,
+          'C:\\Users\\petrg\\Desktop\\Prohack McKinsey\\prohack_dataset_avOqBYc\\final_submit.csv',
+          row.names = FALSE)

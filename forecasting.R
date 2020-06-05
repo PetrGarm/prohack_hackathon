@@ -127,12 +127,9 @@ View(test_data)
 sample_submit <- read.csv("C:/Users/petrg/Desktop/Prohack McKinsey/prohack_dataset_avOqBYc/sample_submit.csv")
 sample_submit$pred = y_hat
 sample_submit$existence.expectancy.index= test_data$existence.expectancy.index
-write.x(sample_submit,
-          'C:\\Users\\petrg\\Desktop\\Prohack McKinsey\\prohack_dataset_avOqBYc\\submit.csv',
+write.xlsx(sample_submit,
+          'C:\\Users\\petrg\\Desktop\\Prohack McKinsey\\prohack_dataset_avOqBYc\\submit.xlsx',
           row.names = FALSE)
-
-sample_submit$lower70 = as.numeric(sample_submit$existence.expectancy.index < 0.7)
-sample_submit$max_gain = (-log(y_hat + 0.01) +3 )**2 * sample_submit$opt_pred / 1000
 
 
 # optimized file
